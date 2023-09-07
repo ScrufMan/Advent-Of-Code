@@ -1,10 +1,10 @@
 // https://adventofcode.com/2021/day/14
 
-type insertionRules = Map<string, string>;
-type countMap = Map<string, number>;
+type InsertionRules = Map<string, string>;
+type CountMap = Map<string, number>;
 
-const parseInput = (raw: string): [string, insertionRules] => {
-  const rules: insertionRules = new Map();
+const parseInput = (raw: string): [string, InsertionRules] => {
+  const rules: InsertionRules = new Map();
 
   const lines = raw.split('\n');
   const polymerTemplate = lines[0];
@@ -18,47 +18,65 @@ const parseInput = (raw: string): [string, insertionRules] => {
   return [polymerTemplate, rules];
 };
 
-const applyRule = (
-  template: string,
-  rules: insertionRules,
-  counts: Map<string, number>
-): string => {
-  let result = '';
-  for (let i = 0; i < template.length; i++) {
-    result += template[i]; // add current element
+const applyRule = (counts: CountMap, rules: InsertionRules): CountMap => {
+  const updatedCounts: CountMap = new Map();
 
-    // check if can make a pair
-    if (i < template.length - 1) {
-      const pair = template[i] + template[i + 1];
-      if (rules.has(pair)) {
-        // if can, add new element and update counts
-        const newElement = rules.get(pair)!; // checked that new element exists
-        result += newElement;
-        counts.set(newElement, (counts.get(newElement) ?? 0) + 1);
-      }
+  for (const [molecule, count] of counts) {
+    if (rules.has(molecule)) {
+      const [leftElement, rightElement] = molecule;
+      const newElement = rules.get(molecule)!; // sure that new element can be synthesised
+
+      // because new element binds to both sides of the parent molecule, it creates two new molecules
+      // old molecule breaks into two new molecules
+      // the updated count of newly created molecules is their so far count + the number of the parent molecules currently in polymer
+      updatedCounts.set(
+        leftElement + newElement,
+        (updatedCounts.get(leftElement + newElement) ?? 0) + count
+      );
+      updatedCounts.set(
+        newElement + rightElement,
+        (updatedCounts.get(newElement + rightElement) ?? 0) + count
+      );
+    } else {
+      // if there's no rule for the molecule it won't split, just copy its count
+      updatedCounts.set(molecule, count);
     }
   }
-  return result;
+
+  return updatedCounts;
 };
 
 const solve = (input: string, steps = 10): number => {
-  const elementsCounts: countMap = new Map();
   const [polymerTemplate, rules] = parseInput(input);
+  let counts: CountMap = new Map();
 
-  // count elements in initial polymer
-  for (const element of polymerTemplate) {
-    const count = elementsCounts.get(element) ?? 0;
-    elementsCounts.set(element, count + 1);
+  // count initial occurences of molecules (element pairs) in polymer template
+  for (let i = 0; i < polymerTemplate.length - 1; i++) {
+    const molecule = polymerTemplate[i] + polymerTemplate[i + 1];
+    counts.set(molecule, (counts.get(molecule) ?? 0) + 1);
   }
 
-  let polymerSoFar = polymerTemplate;
   for (let i = 0; i < steps; i++) {
-    polymerSoFar = applyRule(polymerSoFar, rules, elementsCounts);
+    counts = applyRule(counts, rules);
   }
+
+  // to get the final count of each element, just consider left side of each molecule and add it to the so far element count
+  // because the element on the right side will be counted as element on the left side of the some other molecule
+  const elementCounts: CountMap = new Map();
+  for (const [molecule, count] of counts) {
+    const element = molecule[0];
+    elementCounts.set(element, (elementCounts.get(element) ?? 0) + count);
+  }
+  // rightmost element is not counted in the loop above because it's not the left side of any molecule
+  // just add it to the count
+  elementCounts.set(
+    polymerTemplate[polymerTemplate.length - 1],
+    (elementCounts.get(polymerTemplate[polymerTemplate.length - 1]) ?? 0) + 1
+  );
 
   // get elements with highest and lowest count
-  const maxCount = Math.max(...elementsCounts.values());
-  const minCount = Math.min(...elementsCounts.values());
+  const maxCount = Math.max(...elementCounts.values());
+  const minCount = Math.min(...elementCounts.values());
 
   return maxCount - minCount;
 };
@@ -166,5 +184,8 @@ SB -> B
 VK -> O
 BN -> H`;
 
-const answer = solve(exampleInput);
-console.log('Answer:', answer);
+const answerPart1 = solve(exampleInput, 10);
+console.log('Answer to part 1:', answerPart1);
+
+const answerPart2 = solve(exampleInput, 40);
+console.log('Answer to part 2:', answerPart2);
