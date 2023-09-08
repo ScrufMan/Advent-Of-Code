@@ -18,14 +18,52 @@ const parseInput = (input: string): Grid => {
   return input.split('\n').map((row) => Array.from(row, Number));
 };
 
+const expandGrid = (grid: Grid): Grid => {
+  // expand grid as described in the part 2 task description (5x in each direction) resulting in a 25x size of the original grid
+
+  const getAdjustedRisk = (
+    baseRisk: number,
+    xOffset: number,
+    yOffset: number
+  ): number => {
+    // get the new risk based on offsets and the base risk
+    return ((baseRisk + xOffset + yOffset - 1) % 9) + 1;
+  };
+
+  const originalHeight = grid.length;
+  const originalWidth = grid[0].length;
+
+  const expandedHeight = originalHeight * 5;
+  const expandedWidth = originalWidth * 5;
+
+  const expandedGrid: Grid = Array.from({ length: expandedHeight }, () =>
+    Array(expandedWidth)
+  );
+
+  for (let x = 0; x < expandedHeight; x++) {
+    for (let y = 0; y < expandedWidth; y++) {
+      // risk from the original grid
+      const baseRisk = grid[y % originalHeight][x % originalWidth];
+      // x and y offsets based on which "tile" the coordinate falls in
+      const xOffset = Math.floor(x / originalHeight);
+      const yOffset = Math.floor(y / originalWidth);
+      // adjust the risk for the tile
+      expandedGrid[x][y] = getAdjustedRisk(baseRisk, xOffset, yOffset);
+    }
+  }
+
+  return expandedGrid;
+};
+
 // heuristic function for SSSP algorithm, in this case it's the Manhattan distance
 // which is suitable for grid-based maps with positive movement cost
 const heuristic = (a: Node, end: Node): number => {
   return Math.abs(a.x - end.x) + Math.abs(a.y - end.y);
 };
 
-const solve = (input: string): number => {
-  const grid = parseInput(input);
+const solve = (input: string, expand: boolean = false): number => {
+  const baseGrid = parseInput(input);
+  const grid = expand ? expandGrid(baseGrid) : baseGrid;
 
   const nRows = grid.length;
   const nCols = grid[0].length;
@@ -50,7 +88,7 @@ const solve = (input: string): number => {
     [-1, 0],
   ];
 
-  // while there are unvisited nodes to be evaluated.
+  // while there are unvisited nodes to be evaluated
   while (openList.length) {
     // sort the nodes in the open list by their cost + heuristic, and take the one with the lowest value
     // this makes open list behave like a priority queue
@@ -215,4 +253,8 @@ const input = `99177784696158194831836994559188984249641132929795948992176971166
 2962181629633949925644938398829991982897619932979712895169766295893865787439781919153997193981677859
 4841884135393929498471882713859579729345686219877874228877113424294991897184188689295384478759242558`;
 
-console.log(solve(input));
+const answerPart1 = solve(input);
+console.log('Answer to part 1:', answerPart1);
+
+const answerPart2 = solve(input, true);
+console.log('Answer to part 2:', answerPart2);
