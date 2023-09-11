@@ -22,11 +22,12 @@ const parseInput = (input: string): InputCoordinates => {
 
 const step = (probe: Probe): Probe => {
   /*
-    The probe's x position increases by its x velocity.
-    The probe's y position increases by its y velocity.
-    Due to drag, the probe's x velocity changes by 1 toward the value 0; that is, it decreases by 1 if it is greater than 0, 
-    increases by 1 if it is less than 0, or does not change if it is already 0.
-    Due to gravity, the probe's y velocity decreases by 1.
+    From task description:
+      The probe's x position increases by its x velocity.
+      The probe's y position increases by its y velocity.
+      Due to drag, the probe's x velocity changes by 1 toward the value 0; that is, it decreases by 1 if it is greater than 0, 
+      increases by 1 if it is less than 0, or does not change if it is already 0.
+      Due to gravity, the probe's y velocity decreases by 1.
   */
   const dx = probe.dx;
 
@@ -58,7 +59,9 @@ const highestPoint = (initalVerticalVelocity: number): number => {
   return (initalVerticalVelocity * (initalVerticalVelocity + 1)) / 2;
 };
 
-const solve = (input: string): number => {
+const solve = (input: string, part2: boolean = false): number => {
+  let nSolutions = 0;
+
   const [xTarget1, xTarget2, yTarget1, yTarget2] = parseInput(input);
 
   // probe with positive inital dy will always fall down and pass through some point which has y = 0 coordinate
@@ -73,14 +76,22 @@ const solve = (input: string): number => {
       while (probe.y >= yTarget1 && probe.x <= xTarget2) {
         step(probe);
         if (probeHitTarget(probe, xTarget1, xTarget2, yTarget1, yTarget2)) {
-          return highestPoint(dy);
+          if (!part2) {
+            return highestPoint(dy);
+          }
+          nSolutions++;
+          break;
         }
       }
     }
   }
-  // worst case scenario
-  return yTarget1;
+  // not very elegant, but it's just a puzzle
+  // yTarget1 will always be worst-case solution for part 1
+  return part2 ? nSolutions : yTarget1;
 };
 
 const part1 = solve('target area: x=175..227, y=-134..-79');
 console.log(`Part 1: ${part1}`);
+
+const part2 = solve('target area: x=175..227, y=-134..-79', true);
+console.log(`Part 2: ${part2}`);
